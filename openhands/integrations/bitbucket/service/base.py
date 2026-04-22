@@ -185,9 +185,7 @@ class BitBucketMixinBase(BaseGitService, HTTPClient):
         links = data.get('links') or {}
         avatar_link = links.get('avatar') if isinstance(links, dict) else None
         avatar_url = (
-            avatar_link.get('href') or ''
-            if isinstance(avatar_link, dict)
-            else ''
+            avatar_link.get('href') or '' if isinstance(avatar_link, dict) else ''
         )
 
         return User(
