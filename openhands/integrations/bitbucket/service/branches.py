@@ -2,6 +2,22 @@ from openhands.integrations.bitbucket.service.base import BitBucketMixinBase
 from openhands.integrations.service_types import Branch, PaginatedBranchesResponse
 
 
+def _target(branch: dict) -> dict:
+    """Return ``branch['target']`` as a dict, treating ``null`` /
+    non-dict values as empty so callers can safely chain ``.get``.
+
+    Bitbucket cloud branches API normally returns a ``target`` commit object,
+    but corporate proxies and edge-case repo states have been observed to
+    return ``"target": null``. The original ``branch.get('target', {})``
+    pattern only short-circuited the absent-key case and crashed with
+    ``AttributeError`` on an explicit null. Mirrors the defensive idiom
+    used in ``bitbucket/service/base.py::get_user`` (#14070) and
+    ``_parse_repository`` (#14085).
+    """
+    target = branch.get('target') or {}
+    return target if isinstance(target, dict) else {}
+
+
 class BitBucketBranchesMixin(BitBucketMixinBase):
     """
     Mixin for BitBucket branch-related operations
@@ -30,9 +46,9 @@ class BitBucketBranchesMixin(BitBucketMixinBase):
             branches.append(
                 Branch(
                     name=branch.get('name', ''),
-                    commit_sha=branch.get('target', {}).get('hash', ''),
+                    commit_sha=_target(branch).get('hash', ''),
                     protected=False,  # Bitbucket doesn't expose this in the API
-                    last_push_date=branch.get('target', {}).get('date', None),
+                    last_push_date=_target(branch).get('date', None),
                 )
             )
 
@@ -65,9 +81,9 @@ class BitBucketBranchesMixin(BitBucketMixinBase):
             branches.append(
                 Branch(
                     name=branch.get('name', ''),
-                    commit_sha=branch.get('target', {}).get('hash', ''),
+                    commit_sha=_target(branch).get('hash', ''),
                     protected=False,  # Bitbucket doesn't expose this in the API
-                    last_push_date=branch.get('target', {}).get('date', None),
+                    last_push_date=_target(branch).get('date', None),
                 )
             )
 
@@ -108,9 +124,9 @@ class BitBucketBranchesMixin(BitBucketMixinBase):
             branches.append(
                 Branch(
                     name=branch.get('name', ''),
-                    commit_sha=branch.get('target', {}).get('hash', ''),
+                    commit_sha=_target(branch).get('hash', ''),
                     protected=False,
-                    last_push_date=branch.get('target', {}).get('date', None),
+                    last_push_date=_target(branch).get('date', None),
                 )
             )
         return branches
